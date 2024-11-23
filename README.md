@@ -24,7 +24,7 @@ A web application for downloading high-quality music with embedded metatags usin
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/metatags-music-downloader.git
+   git clone https://github.com/Razamindset/metatags-music-downloader
    cd metatags-music-downloader
    ```
 
@@ -39,17 +39,11 @@ A web application for downloading high-quality music with embedded metatags usin
    pip install -r requirements.txt
    ```
 
-4. Set up environment variables (if necessary):
-   ```
-   cp .env.example .env
-   # Edit the .env file with your configuration
-   ```
-
 ## Usage
 
 1. Start the Flask development server:
    ```
-   flask run
+   python app.py
    ```
 
 2. Open your web browser and navigate to `http://localhost:5000`
