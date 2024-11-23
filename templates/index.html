@@ -296,7 +296,7 @@
             const a = document.createElement("a");
             a.style.display = "none";
             a.href = url;
-            a.download = `${songName}-${quality}.m4a`;
+            a.download = `${songName}.m4a`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);

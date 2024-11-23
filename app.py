@@ -38,7 +38,7 @@ def add_metadata_with_cover(file_path, song_info):
             try:
                 image_data = song_info['image']
                 if isinstance(image_data, list) and image_data:
-                    image_url = image_data[1].get('link')
+                    image_url = image_data[-1].get('link')
                     if image_url:
                         image_response = requests.get(image_url)
                         image_response.raise_for_status()
