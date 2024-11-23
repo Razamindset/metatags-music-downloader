@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Melodify - Music Streaming API</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #6c5ce7;
+        --secondary-color: #a29bfe;
+        --background-color: #1e272e;
+        --card-background: #2d3436;
+        --text-color: #dfe6e9;
+        --text-muted: #b2bec3;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+        color: var(--text-muted);
+      }
+
+      #searchForm {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+      }
+
+      #searchInput {
+        width: 60%;
+        padding: 0.8rem 1rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 25px 0 0 25px;
+        background-color: var(--card-background);
+        color: var(--text-color);
+        outline: none;
+      }
+
+      #searchButton {
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 0 25px 25px 0;
+        background-color: var(--primary-color);
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      #searchButton:hover {
+        background-color: var(--secondary-color);
+      }
+
+      #spinner {
+        display: none;
+        justify-content: center;
+        margin: 2rem 0;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid var(--secondary-color);
+        border-top: 5px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      #results {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 2rem;
+      }
+
+      .song-card {
+        background-color: var(--card-background);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+      }
+
+      .song-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .song-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+      }
+
+      .song-details {
+        padding: 1rem;
+      }
+
+      .song-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .song-info {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+      }
+
+      .quality-select {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        border: 1px solid var(--text-muted);
+        border-radius: 5px;
+      }
+
+      .download-btn {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .download-btn:hover {
+        background-color: var(--secondary-color);
+      }
+
+      @media (max-width: 768px) {
+        #searchForm {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        #searchInput,
+        #searchButton {
+          width: 100%;
+          border-radius: 25px;
+          margin-bottom: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Melodify</h1>
+        <p class="subtitle">Discover and Download Your Favorite Tunes</p>
+      </header>
+
+      <form id="searchForm" onsubmit="searchSongs(event)">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search for songs, artists, or albums..."
+          required
+        />
+        <button type="submit" id="searchButton">Search</button>
+      </form>
+
+      <div id="spinner">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="results"></div>
+    </div>
+
+    <script>
+      async function searchSongs(event) {
+        event.preventDefault();
+
+        const query = document.getElementById("searchInput").value.trim();
+        if (!query) {
+          alert("Please enter a search term!");
+          return;
+        }
+
+        document.getElementById("spinner").style.display = "flex";
+        document.getElementById("results").innerHTML = "";
+
+        try {
+          const response = await fetch(
+            `/api/search?query=${encodeURIComponent(query)}`
+          );
+          const data = await response.json();
+
+          if (response.ok) {
+            const results = data.songs.song_data;
+            const resultsContainer = document.getElementById("results");
+
+            if (results.length === 0) {
+              resultsContainer.innerHTML =
+                '<p class="text-center">No songs found.</p>';
+            } else {
+              results.forEach((song) => {
+                const songCard = document.createElement("div");
+                songCard.className = "song-card";
+
+                const image = song.image
+                  ? song.image[song.image.length - 1].link
+                  : "https://via.placeholder.com/250x250?text=No+Image";
+
+                songCard.innerHTML = `
+                                <img src="${image}" alt="${song.name}" class="song-image">
+                                <div class="song-details">
+                                    <h2 class="song-title">${song.name}</h2>
+                                    <p class="song-info">${song.album} - ${song.primary_artists}</p>
+                                    <select id="quality-${song.id}" class="quality-select">
+                                        <option value="low">Low Quality</option>
+                                        <option value="medium">Medium Quality</option>
+                                        <option value="high" selected>High Quality</option>
+                                    </select>
+                                    <button class="download-btn" onclick="downloadSong('${song.id}', '${song.name}')">
+                                        Download
+                                    </button>
+                                </div>
+                            `;
+
+                resultsContainer.appendChild(songCard);
+              });
+            }
+          } else {
+            alert(data.error || "An error occurred!");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("An error occurred while fetching data.");
+        } finally {
+          document.getElementById("spinner").style.display = "none";
+        }
+      }
+
+      async function downloadSong(songId, songName) {
+        const quality = document.getElementById(`quality-${songId}`).value;
+        const downloadButton = event.target;
+        const originalText = downloadButton.textContent;
+
+        downloadButton.textContent = "Downloading...";
+        downloadButton.disabled = true;
+
+        try {
+          const response = await fetch(
+            `/api/download?id=${songId}&quality=${quality}`
+          );
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = `${songName}-${quality}.m4a`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+          } else {
+            const data = await response.json();
+            alert(data.error || "Failed to download the song.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("An error occurred during download.");
+        } finally {
+          downloadButton.textContent = originalText;
+          downloadButton.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
