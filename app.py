@@ -21,12 +21,13 @@ def add_metadata_with_cover(file_path, song_info):
         audio.tags['\xa9nam'] = [song_info.get('name', 'Unknown')]  # Title
         
         # Handle artists more safely
-        artists = song_info.get("primary_artists", [])
-        if isinstance(artists, list) and artists:
-            artist_name = artists[0].get("name", "Unknown") if isinstance(artists[0], dict) else "Unknown"
-        else:
-            artist_name = "Unknown"
-        audio.tags['\xa9ART'] = [artist_name]
+        artists = song_info.get("artist_map", {}).get("artists", [])
+        artist = artists[0].get("name", "Unknown")
+        # if isinstance(artists, list) and artists:
+        #     artist_name = artists[0].get("name", "Unknown") if isinstance(artists[0], dict) else "Unknown"
+        # else:
+        #     artist_name = "Unknown"
+        audio.tags['\xa9ART'] = [artist]
         
         # Handle album safely
         album = song_info.get('album', {})
@@ -87,7 +88,7 @@ def download_song():
         # Select download URL based on quality
         try:
             if quality == 'low' and len(download_urls) > 0:
-                download_url = download_urls[0]["link"]
+                download_url = download_urls[1]["link"]
             elif quality == 'medium' and len(download_urls) > 2:
                 download_url = download_urls[2]["link"]
             elif quality == 'high' and download_urls:
