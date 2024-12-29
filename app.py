@@ -12,29 +12,44 @@ logger = logging.getLogger(__name__)
 
 API_URL = "https://jiosaavn-ts.vercel.app"
 
-def add_metadata_with_cover(file_path, song_info):
-    """Add metadata including cover art to the M4A file"""
+def fetch_lyrics(song_id):
+    """Fetch lyrics from the provided URL."""
+    try:
+        url = f"https://jiosaavn-ts.vercel.app/get/lyrics?id={song_id}"
+        response = requests.get(url)
+        response.raise_for_status()
+        lyrics_data = response.json()
+
+        if lyrics_data.get("status") == "Success" and lyrics_data["data"]:
+            return lyrics_data["data"].get("lyrics")
+
+        logger.warning("Lyrics not available for the song.")
+        return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching lyrics: {e}")
+        return None
+
+
+def add_metadata_with_cover(file_path, song_info, song_id):
+    """Add metadata including cover art and lyrics to the M4A file."""
     try:
         audio = MP4(file_path)
-        
-        # M4A tag mapping
-        audio.tags['\xa9nam'] = [song_info.get('name', 'Unknown')]  # Title
-        
-        # Handle artists more safely
+
+        # Add title metadata
+        audio.tags['\xa9nam'] = [song_info.get('name', 'Unknown')]
+
+        # Add artist metadata
         artists = song_info.get("artist_map", {}).get("artists", [])
-        artist = artists[0].get("name", "Unknown")
-        # if isinstance(artists, list) and artists:
-        #     artist_name = artists[0].get("name", "Unknown") if isinstance(artists[0], dict) else "Unknown"
-        # else:
-        #     artist_name = "Unknown"
+        artist = artists[0].get("name", "Unknown") if artists else "Unknown"
         audio.tags['\xa9ART'] = [artist]
-        
-        # Handle album safely
+
+        # Add album metadata
         album = song_info.get('album', {})
         album_name = album.get('name', 'Unknown') if isinstance(album, dict) else album
         audio.tags['\xa9alb'] = [album_name]
 
-        # Handle cover art
+        # Add cover art metadata
         if song_info.get('image'):
             try:
                 image_data = song_info['image']
@@ -43,24 +58,30 @@ def add_metadata_with_cover(file_path, song_info):
                     if image_url:
                         image_response = requests.get(image_url)
                         image_response.raise_for_status()
-                        
+
                         cover_data = MP4Cover(
                             image_response.content,
                             imageformat=MP4Cover.FORMAT_JPEG if image_url.lower().endswith(('.jpg', '.jpeg'))
                             else MP4Cover.FORMAT_PNG
                         )
                         audio.tags['covr'] = [cover_data]
-                
             except Exception as e:
                 logger.error(f"Error adding cover art: {e}")
 
+        # Fetch and add lyrics metadata
+        lyrics = fetch_lyrics(song_id)
+        if lyrics:
+            audio.tags['\xa9lyr'] = [lyrics]
+
+        # Save metadata
         audio.save()
         logger.info(f"Metadata added to {file_path}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error adding metadata: {e}")
         return False
+
 
 @app.route('/api/download', methods=['GET'])
 def download_song():
@@ -120,7 +141,7 @@ def download_song():
                 f.write(chunk)
 
         # Add metadata
-        if not add_metadata_with_cover(str(file_path), song_info):
+        if not add_metadata_with_cover(str(file_path), song_info, song_id):
             logger.warning("Failed to add metadata to the file")
 
         try:
